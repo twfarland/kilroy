@@ -15,7 +15,7 @@ function each (obj, f) {
 
 
 function KilroyDef (conf) {
-    
+
     return function KilroyCreate (opts) {
 
         return new Kilroy(opts, conf);
@@ -33,7 +33,7 @@ function Kilroy (opts, conf) {
     k.rendering = false;
 
     for (var p in conf) {
-        if (k[p] !== undefined) throw new Error('Deft: ' + p + ' is a reserved property');
+        if (!(k[p] === undefined)) throw new Error('Kilroy: ' + p + ' is a reserved property');
         if (conf.hasOwnProperty(p)) k[p] = conf[p];
     }
 
@@ -70,6 +70,7 @@ function render (k) {
 
         k.rendering = true;
         vDomNew     = flattenVDom(k.view(k));
+        //console.log(k.toHtml(k.vDom), k.toHtml(vDomNew))
 
         k.update(k.dom, k.vDom, vDomNew);
 
@@ -96,11 +97,14 @@ Kilroy.prototype.bindEvents = function (mode) {
 
                 if ((sel[0] === '#' && evt.target.getAttribute('id') === sel.slice(1)) || // id
                     (sel[0] === '.' && (evt.target.className.split(/ +/).indexOf(sel.slice(1)) > -1)) || // class
-                    (sel === evt.target.tagName.toLowerCase())) // tagname 
-                        k[events[sel]].call(evt.target, k, evt);
+                    (sel === evt.target.tagName.toLowerCase())) { // tagname 
+
+                    //console.log(sel, eventName, evt.target, events)
+                    k[events[sel]].call(evt.target, k, evt);
+                }
             }
 
-        }, false); 
+        }, true); 
     });
 };
 
@@ -131,10 +135,12 @@ function flattenVDom (v) {
         child = v[i];
 
         if (child instanceof Array && child[0] instanceof Array) {
-            for (c = 0; c < child.length; c++) res.push(flattenVDom(child[c]));
+            for (c = 0; c < child.length; c++) {
+                if (exists(child[c])) res.push(flattenVDom(child[c]));
+            }
 
         } else {
-            res.push(flattenVDom(v[i]));
+            if (exists(v[i])) res.push(flattenVDom(v[i]));
         }
    }
 
@@ -155,7 +161,7 @@ Kilroy.prototype.toHtmlStr = function (v) { // v must be flattened
             res;
 
         if (_toString.call(obj) === '[object Object]') {
-            for (a in obj) obj[a] && a[0] !== '_' && attrs.push(a + '="' + obj[a] + '"');
+            for (a in obj) exists(obj[a]) && a[0] !== '_' && attrs.push(a + '="' + obj[a] + '"');
             children = v.slice(2);
 
         } else {
@@ -173,7 +179,7 @@ Kilroy.prototype.toHtmlStr = function (v) { // v must be flattened
     } else if (typeof v === 'string') { // atom
         return v;
 
-    } else if (v.toString) {
+    } else if (v !== false && v !== null && !(v === undefined) && v.toString) {
         return v.toString();
 
     } else {
@@ -196,6 +202,8 @@ Kilroy.prototype.toHtml = function (v) { // v must be flattened
 
 
 Kilroy.prototype.update = function (D, A, B) { 
+
+    if (!D) return;
 
     var k = this;
     var DChildren = [].slice.call(D.childNodes);
@@ -220,8 +228,9 @@ Kilroy.prototype.update = function (D, A, B) {
     // update attributes
 
     for (BAttr in BAttrs) { 
-        if (AAttrs[BAttr] === undefined || AAttrs[BAttr] !== BAttrs[BAttr]) D.setAttribute(BAttr, BAttrs[BAttr]);
-        delete AAttrs[BAttr];
+        if (!exists(AAttrs[BAttr]) || AAttrs[BAttr] !== BAttrs[BAttr]) 
+            D.setAttribute(BAttr, BAttrs[BAttr]);
+        if (exists(BAttrs[BAttr])) delete AAttrs[BAttr];
     }
 
     for (AAttr in AAttrs) D.removeAttribute(AAttr);
@@ -241,8 +250,8 @@ Kilroy.prototype.update = function (D, A, B) {
             a = AChildren[i];
             b = BChildren[i];
 
-            if (!(a === undefined || a.length === 0)) AKeys[a[1]._key] = d;
-            if (!(b === undefined || b.length === 0)) BKeys[b[1]._key] = b;
+            if (exists(a)) AKeys[a[1]._key] = d;
+            if (exists(b)) BKeys[b[1]._key] = b;
         }
 
         for (AKey in AKeys) {
@@ -271,63 +280,48 @@ Kilroy.prototype.update = function (D, A, B) {
             a = AChildren[i];
             b = BChildren[i];
             
-            if (d === undefined && (a === undefined || a.length === 0) && !(b === undefined || b.length === 0)) { // no d/a, but b
+            if (d === undefined && !exists(a) && exists(b)) {
+                console.log('append', d,a,b)
                 D.appendChild(k.toHtml(b));
 
-            } else if (!(d === undefined) && !(a === undefined || a.length === 0) && (b === undefined || b.length === 0)) { // d/a, but no b
+            } else if (!(d === undefined) && exists(a) && !exists(b)) { 
+                console.log('remove', d,a,b)
                 D.removeChild(d);
 
-            } else if (!(d === undefined) && !(a === undefined || a.length === 0) && !(b === undefined || b.length === 0)) { // both
+            } else if (!(d === undefined) && exists(a) && exists(b)) { // both
 
                 if (a instanceof Array && b instanceof Array && typeof a[0] === 'string' && typeof b[0] === 'string') { // tags
 
                     if (a[0] === b[0]) { // same tag, explore further
+                        console.log('explore', d,a,b)
                         k.update(d, a, b);
 
                     } else {
+                        console.log('replace', d,a,b)
                         D.replaceChild(k.toHtml(b), d); // different tag, regen, no need to explore further
                     }
 
-                } else { // atoms
-                    if (a !== b) {
-                        D.replaceChild(k.toHtml(b), d);
-                    }
+                } else if (a !== b) { // atoms
+                    console.log('replace', d,a,b)
+                    D.replaceChild(k.toHtml(b), d);
                 }
+            } else {
+                console.log('nothing', D,A,B,d,a,b)
             }
         }
     }
 };
 
 
+function exists (n) {
+    if (n instanceof Array || typeof n === 'string') return !!n.length > 0;
+    return !!(n === 0 || n);
+}
+
+
+
+
 root.Kilroy = KilroyDef;
 
 
 }).call(this);
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
