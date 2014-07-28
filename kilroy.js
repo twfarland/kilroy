@@ -33,7 +33,7 @@ function Kilroy (opts, conf) {
     k.rendering = false;
 
     for (var p in conf) {
-        if (!(k[p] === undefined)) throw new Error('Kilroy: ' + p + ' is a reserved property');
+        if (!(k[p] === undefined)) throw new Error('Kilroy: "' + p + '"" is a reserved property');
         if (conf.hasOwnProperty(p)) k[p] = conf[p];
     }
 
@@ -70,7 +70,6 @@ function render (k) {
 
         k.rendering = true;
         vDomNew     = flattenVDom(k.view(k));
-        //console.log(k.toHtml(k.vDom), k.toHtml(vDomNew))
 
         k.update(k.dom, k.vDom, vDomNew);
 
@@ -99,7 +98,6 @@ Kilroy.prototype.bindEvents = function (mode) {
                     (sel[0] === '.' && (evt.target.className.split(/ +/).indexOf(sel.slice(1)) > -1)) || // class
                     (sel === evt.target.tagName.toLowerCase())) { // tagname 
 
-                    //console.log(sel, eventName, evt.target, events)
                     k[events[sel]].call(evt.target, k, evt);
                 }
             }
@@ -227,13 +225,23 @@ Kilroy.prototype.update = function (D, A, B) {
 
     // update attributes
 
-    for (BAttr in BAttrs) { 
-        if (!exists(AAttrs[BAttr]) || AAttrs[BAttr] !== BAttrs[BAttr]) 
+    for (BAttr in BAttrs) {
+        if (BAttr === 'checked') { 
+            D.checked = !!BAttrs[BAttr];
+
+        } else if (!exists(AAttrs[BAttr]) || AAttrs[BAttr] !== BAttrs[BAttr]) {
             D.setAttribute(BAttr, BAttrs[BAttr]);
+        }
         if (exists(BAttrs[BAttr])) delete AAttrs[BAttr];
     }
 
-    for (AAttr in AAttrs) D.removeAttribute(AAttr);
+    for (AAttr in AAttrs) {
+        if (AAttr === 'checked') {
+            D.checked = false;
+        } else {
+            D.removeAttribute(AAttr);
+        }
+    }
 
 
     // child comparison
@@ -281,11 +289,9 @@ Kilroy.prototype.update = function (D, A, B) {
             b = BChildren[i];
             
             if (d === undefined && !exists(a) && exists(b)) {
-                console.log('append', d,a,b)
                 D.appendChild(k.toHtml(b));
 
             } else if (!(d === undefined) && exists(a) && !exists(b)) { 
-                console.log('remove', d,a,b)
                 D.removeChild(d);
 
             } else if (!(d === undefined) && exists(a) && exists(b)) { // both
@@ -293,21 +299,16 @@ Kilroy.prototype.update = function (D, A, B) {
                 if (a instanceof Array && b instanceof Array && typeof a[0] === 'string' && typeof b[0] === 'string') { // tags
 
                     if (a[0] === b[0]) { // same tag, explore further
-                        console.log('explore', d,a,b)
                         k.update(d, a, b);
 
                     } else {
-                        console.log('replace', d,a,b)
                         D.replaceChild(k.toHtml(b), d); // different tag, regen, no need to explore further
                     }
 
                 } else if (a !== b) { // atoms
-                    console.log('replace', d,a,b)
                     D.replaceChild(k.toHtml(b), d);
                 }
-            } else {
-                console.log('nothing', D,A,B,d,a,b)
-            }
+            } 
         }
     }
 };
