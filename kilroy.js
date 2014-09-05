@@ -343,7 +343,7 @@ Kilroy.prototype.update = function (D, A, B) {
 
             b = BChildren[i];
 
-            if (d = AKeys[b[1]._key]) {
+            if (d = AKeys[b[1]._key] && D.lastChild !== d) {
                 D.appendChild(D.removeChild(d));
 
             } else {
