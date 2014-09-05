@@ -48,8 +48,11 @@ function Kilroy (opts, conf) {
 
     k.bindEvents(true);
 
+    if (k.batched && window.requestAnimationFrame) animate(k);
+
     return k;
 }
+
 
 
 Kilroy.prototype.bindEvents = function (mode) {
@@ -81,6 +84,25 @@ Kilroy.prototype.bindEvents = function (mode) {
 };
 
 
+function animate (k) {
+
+    var k = this;
+
+    function frame () {
+        window.requestAnimationFrame(frame);
+
+        if (!k.rendering && k.dirty) {
+            k.rendering = true;
+            k.render();
+            k.rendering = false;
+            k.dirty     = false;
+        }
+    }
+
+    frame();
+};
+
+
 Kilroy.prototype.set = function (toSet) {
 
     var k = this;
@@ -91,8 +113,15 @@ Kilroy.prototype.set = function (toSet) {
     } else {
         setOne(k, _slice.call(arguments));
     }    
+
+    if (k.batched) {
+        k.dirty = true;
+
+    } else {
+        k.render();
+    }
     
-    return k.render();
+    return k;
 };
 
 
