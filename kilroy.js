@@ -24,9 +24,7 @@ function each (obj, f) {
 
 
 function KilroyDef (conf) {
-
     return function KilroyCreate (opts) {
-
         return new Kilroy(opts, conf);
     }
 }
@@ -274,7 +272,7 @@ Kilroy.prototype.update = function (D, A, B) {
     if (!D) return;
 
     var k = this;
-    var DChildren = [].slice.call(D.childNodes);
+    var DChildren = _slice.call(D.childNodes);
     var AChildren, AAttrs = {}, AAttr;
     var BChildren, BAttrs = {}, BAttr;
     var CAttrs = {}, CAttr;
@@ -343,11 +341,8 @@ Kilroy.prototype.update = function (D, A, B) {
 
             b = BChildren[i];
 
-            if (d = AKeys[b[1]._key] && D.lastChild !== d) {
-                D.appendChild(D.removeChild(d));
-
-            } else {
-                D.appendChild(k.toHtml(b));
+            if (AKeys[b[1]._key] === undefined) {
+                insertBeforeIndex(D, i, k.toHtml(b));
             }
         }
 
@@ -388,6 +383,14 @@ Kilroy.prototype.update = function (D, A, B) {
     }
 };
 
+function insertBeforeIndex(parent, i, child) {
+    var next = parent.childNodes[i];
+    if (next) {
+        parent.insertBefore(child, next);
+    } else {
+        parent.appendChild(child);
+    }
+}
 
 function isTag (v) {
     return v instanceof Array && typeof v[0] === 'string';
