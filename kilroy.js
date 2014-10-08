@@ -39,7 +39,7 @@ function Kilroy (opts, conf) {
         if (conf.hasOwnProperty(p)) k[p] = conf[p];
     }
 
-    k.init(k, opts);
+    k.init(opts);
 
     k.vDom = prepVDom(k.view(k));
     k.dom  = k.toHtml(k.vDom); 
@@ -74,7 +74,7 @@ Kilroy.prototype.bindEvents = function (mode) {
 
                         cb = events[sel];
                         if (typeof cb === 'string') cb = k[cb];
-                        cb.call(evt.target, k, evt);
+                        cb.call(k, evt, evt.target);
                 }
             }
         }); 
@@ -84,17 +84,15 @@ Kilroy.prototype.bindEvents = function (mode) {
 
 function animate (k) {
 
-    var k = this;
-
     function frame () {
-        window.requestAnimationFrame(frame);
 
         if (!k.rendering && k.dirty) {
             k.rendering = true;
             k.render();
             k.rendering = false;
             k.dirty     = false;
-        }
+        } 
+        window.requestAnimationFrame(frame);
     }
 
     frame();
