@@ -9,24 +9,24 @@ var root      = this,
 
 
 if (document.body.addEventListener) {
-    _on  = function (el, event, cb) { el.addEventListener(event, cb, false); }
-    _off = function (el, event, cb) { el.removeEventListener(event, cb, false); }
+    _on  = function (el, event, cb) { el.addEventListener(event, cb, false); };
+    _off = function (el, event, cb) { el.removeEventListener(event, cb, false); };
 
 } else {
-    _on  = function (el, event, cb) { el.attachEvent('on' + event, cb); }
-    _off = function (el, event, cb) { el.detachEvent('on' + event, cb); }
+    _on  = function (el, event, cb) { el.attachEvent('on' + event, cb); };
+    _off = function (el, event, cb) { el.detachEvent('on' + event, cb); };
 }
+
 
 function each (obj, f) {
     for (var k in obj) f(obj[k], k);
 }
 
 
-
 function KilroyDef (conf) {
     return function KilroyCreate (opts) {
         return new Kilroy(opts, conf);
-    }
+    };
 }
 
 
@@ -39,18 +39,17 @@ function Kilroy (opts, conf) {
         if (conf.hasOwnProperty(p)) k[p] = conf[p];
     }
 
-    k.init(opts);
+    k.init && k.init(opts);
 
     k.vDom = prepVDom(k.view(k));
     k.dom  = k.toHtml(k.vDom); 
 
     k.bindEvents(true);
 
-    if (k.batched && window.requestAnimationFrame) animate(k);
+    if (window.requestAnimationFrame && !k.noAnimate) animate(k);
 
     return k;
 }
-
 
 
 Kilroy.prototype.bindEvents = function (mode) {
@@ -84,6 +83,8 @@ Kilroy.prototype.bindEvents = function (mode) {
 
 function animate (k) {
 
+    k.animating = true;
+
     function frame () {
 
         if (!k.rendering && k.dirty) {
@@ -96,55 +97,30 @@ function animate (k) {
     }
 
     frame();
-};
-
-
-Kilroy.prototype.set = function (toSet) {
-
-    var k = this;
-
-    if (toSet instanceof Array) {
-        for (var i = 0; i < toSet.length; i++) setOne(k, toSet[i]);
-
-    } else {
-        setOne(k, _slice.call(arguments));
-    }    
-
-    if (k.batched) {
-        k.dirty = true;
-
-    } else {
-        k.render();
-    }
-    
-    return k;
-};
-
-
-function setOne (k, path) {
-
-    var ref        = k,
-        pathLength = path.length;
-        p          = 0;
-
-    while (pathLength > 2) {
-        ref = ref[path[p]];
-        p++;
-        pathLength--;
-    }
-
-    ref[path[0]] = path[1];
 }
 
 
-Kilroy.prototype.render = function () {
+Kilroy.prototype.d = function () {
 
+    if (this.animating) {
+        this.dirty = true;
+
+    } else {
+        this.render();
+    }
+};
+
+
+Kilroy.prototype.render = function () {
+    
     var k = this,
         vDomNew = prepVDom(k.view(k));
 
     k.update(k.dom, k.vDom, vDomNew);
 
     k.vDom = vDomNew;
+
+    if (k.onUpdate) k.onUpdate();
 
     return k;
 };
@@ -155,6 +131,7 @@ function prepVDom (v) {
     if (!isTag(v)) return v; 
 
     // extract id and class from tag
+
     var tag = v[0].split(/\s+/); 
 
     if (tag.length > 1 || tag[0][0] === '#' || tag[0][0] === '.') {
@@ -163,7 +140,7 @@ function prepVDom (v) {
 
         if (_toString.call(v[1]) === '[object Object]') {
             attrs = v[1]; 
-            rest  = 2
+            rest  = 2;
 
         } else {
             attrs = {};
@@ -189,6 +166,7 @@ function prepVDom (v) {
     }
 
     // flatten children 
+
     var res = [v[0]], i, child, c;
 
     for (i = 1; i < v.length; i++) {
@@ -207,7 +185,6 @@ function prepVDom (v) {
 
     return res;
 }
-
 
 
 Kilroy.prototype.toHtmlStr = function (v) {
@@ -264,7 +241,6 @@ Kilroy.prototype.toHtml = function (v) { // v must be flattened
 // A is current virtual dom node
 // B is new virtual dom node
 
-
 Kilroy.prototype.update = function (D, A, B) { 
 
     if (!D) return;
@@ -291,7 +267,6 @@ Kilroy.prototype.update = function (D, A, B) {
         BChildren = B.slice(1);
     }
 
-
     // update attributes
 
     for (BAttr in BAttrs) {
@@ -307,17 +282,15 @@ Kilroy.prototype.update = function (D, A, B) {
     for (CAttr in CAttrs) {
         if (CAttr === 'checked') {
             D.checked = false;
+            
         } else {
             D.removeAttribute(CAttr);
         }
     }
 
+    // child comparison: keyed, hash-based strategy
 
-    // child comparison
-
-    // keyed, hash-based strategy
-
-    if (BChildren[0] && BChildren[0][1] && BChildren[0][1]._key) { 
+    if (BChildren[0] && BChildren[0][1] && BChildren[0][1]._key) {
 
         var AKeys = {}, AKey, BKeys = {}, BKey;
 
@@ -339,12 +312,10 @@ Kilroy.prototype.update = function (D, A, B) {
 
             b = BChildren[i];
 
-            if (AKeys[b[1]._key] === undefined) {
-                insertBeforeIndex(D, i, k.toHtml(b));
-            }
+            if (AKeys[b[1]._key] === undefined) insertBeforeIndex(D, i, k.toHtml(b));
         }
 
-    // pairwise, naive strategy    
+    // child comparison: pairwise, naive strategy    
 
     } else { 
 
@@ -358,7 +329,7 @@ Kilroy.prototype.update = function (D, A, B) {
                 D.appendChild(k.toHtml(b)); 
 
             } else if (typeof d !== 'undefined' && exists(a) && !exists(b)) { // d/a, but no b
-                D.removeChild(d); 
+                D.removeChild(d);
 
             } else if (typeof d !== 'undefined' && exists(a) && exists(b)) { // both
 
@@ -382,7 +353,9 @@ Kilroy.prototype.update = function (D, A, B) {
 };
 
 function insertBeforeIndex(parent, i, child) {
+
     var next = parent.childNodes[i];
+
     if (next) {
         parent.insertBefore(child, next);
     } else {
