@@ -63,17 +63,19 @@ Kilroy.prototype.bindEvents = function (mode) {
 
         method(k.dom, eventName, function (evt) {
 
-            var sel, cb;
+            evt = evt || window.event;
+
+            var sel, cb, target = evt.target || evt.srcElement;
 
             for (sel in events) {
 
-                if ((sel[0] === '#' && evt.target.getAttribute('id') === sel.slice(1)) || // id
-                    (sel[0] === '.' && (evt.target.className.split(/ +/).indexOf(sel.slice(1)) > -1)) || // class
-                    (sel === evt.target.tagName.toLowerCase())) { // tagname 
+                if ((sel[0] === '#' && target.getAttribute('id') === sel.slice(1)) || // id
+                    (sel[0] === '.' && (target.className.split(/ +/).indexOf(sel.slice(1)) > -1)) || // class
+                    (sel === target.tagName.toLowerCase())) { // tagname 
 
                         cb = events[sel];
                         if (typeof cb === 'string') cb = k[cb];
-                        cb.call(k, evt, evt.target);
+                        cb.call(k, evt, target);
                 }
             }
         }); 
@@ -136,14 +138,13 @@ function prepVDom (v) {
 
     if (tag.length > 1 || tag[0][0] === '#' || tag[0][0] === '.') {
 
-        var attrs, a, attr, rest, el = 'div';
+        var attrs = {}, a, attr, rest, el = 'div';
 
         if (_toString.call(v[1]) === '[object Object]') {
-            attrs = v[1]; 
+            attrs = v[1] || {}; 
             rest  = 2;
 
         } else {
-            attrs = {};
             rest  = 1;
         }
 
@@ -245,13 +246,22 @@ Kilroy.prototype.update = function (D, A, B) {
 
     if (!D) return;
 
-    var k = this;
-    var DChildren = _slice.call(D.childNodes);
-    var AChildren, AAttrs = {}, AAttr;
-    var BChildren, BAttrs = {}, BAttr;
-    var CAttrs = {}, CAttr;
-    var d, a, b;
-    var i;
+    var k = this,
+        DChildren = [],
+        AChildren, 
+        AAttrs = {}, 
+        AAttr,
+        BChildren, 
+        BAttrs = {}, 
+        BAttr,
+        CAttrs = {}, 
+        CAttr,
+        d,
+        a, 
+        b, 
+        i;
+
+    try { DChildren = _slice.call(D.childNodes); } catch (e) {}    
 
     if (_toString.call(A[1]) === '[object Object]') {
         AAttrs    = A[1];
@@ -309,9 +319,7 @@ Kilroy.prototype.update = function (D, A, B) {
         } 
 
         for (i = 0; i < BChildren.length; i++) {
-
             b = BChildren[i];
-
             if (AKeys[b[1]._key] === undefined) insertBeforeIndex(D, i, k.toHtml(b));
         }
 
@@ -352,7 +360,7 @@ Kilroy.prototype.update = function (D, A, B) {
     }
 };
 
-function insertBeforeIndex(parent, i, child) {
+function insertBeforeIndex (parent, i, child) {
 
     var next = parent.childNodes[i];
 
