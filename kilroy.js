@@ -8,6 +8,18 @@ var root      = this,
     _off;
 
 
+try { // ie < 9 fix
+    _slice.call(document.body.childNodes);
+
+} catch (e) {
+    _slice = function () {
+        var res = [], i;
+        for (i = 0; i < this.length; i++) res.push(this[i]);
+        return res;    
+    };
+}
+
+
 if (document.body.addEventListener) {
     _on  = function (el, event, cb) { el.addEventListener(event, cb, false); };
     _off = function (el, event, cb) { el.removeEventListener(event, cb, false); };
@@ -35,7 +47,7 @@ function Kilroy (opts, conf) {
     var k = this;
 
     for (var p in conf) {
-        if (k[p] !== undefined) throw new Error('Deft: ' + p + ' is a reserved property');
+        if (k[p] !== undefined) throw new Error('Kilroy: ' + p + ' is a reserved property');
         if (conf.hasOwnProperty(p)) k[p] = conf[p];
     }
 
@@ -261,7 +273,7 @@ Kilroy.prototype.update = function (D, A, B) {
         b, 
         i;
 
-    try { DChildren = _slice.call(D.childNodes); } catch (e) {}    
+    DChildren = _slice.call(D.childNodes);   
 
     if (_toString.call(A[1]) === '[object Object]') {
         AAttrs    = A[1];
