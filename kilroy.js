@@ -51,10 +51,11 @@ function Kilroy (opts, conf) {
         if (conf.hasOwnProperty(p)) k[p] = conf[p];
     }
 
+    k.postUpdate = []; 
     k.init && k.init(opts);
 
     k.vDom = prepVDom(k.view(k));
-    k.dom  = k.toHtml(k.vDom); 
+    k.dom  = k.toHtml(k.vDom);
 
     k.bindEvents(true);
 
@@ -128,7 +129,8 @@ Kilroy.prototype.d = function () {
 Kilroy.prototype.render = function () {
     
     var k = this,
-        vDomNew = prepVDom(k.view(k));
+        vDomNew = prepVDom(k.view(k)),
+        i, f;
 
     k.update(k.dom, k.vDom, vDomNew);
 
@@ -136,7 +138,20 @@ Kilroy.prototype.render = function () {
 
     if (k.onUpdate) k.onUpdate();
 
+    for (i = 0; i < k.postUpdate.length; i++) {
+        f = k.postUpdate[i];
+        f[0].apply(k, f[1]);
+    }
+
+    k.postUpdate = [];    
+
     return k;
+};
+
+
+Kilroy.prototype.onNextUpdate = function (f, args) {
+
+    this.postUpdate.push([f, args]);
 };
 
 
@@ -292,23 +307,43 @@ Kilroy.prototype.update = function (D, A, B) {
     // update attributes
 
     for (BAttr in BAttrs) {
-        if (BAttr === 'checked') { 
-            D.checked = !!BAttrs[BAttr];
+
+        if (!exists(BAttrs[BAttr])) {
+            CAttrs[BAttr] = true;
 
         } else if (!exists(AAttrs[BAttr]) || AAttrs[BAttr] !== BAttrs[BAttr]) {
-            D.setAttribute(BAttr, BAttrs[BAttr]);
+
+            if (BAttr === 'value') {
+                D.value = BAttrs[BAttr];
+
+            } else if (BAttr === 'checked') { 
+                D.checked = true;
+
+            } else if (BAttr === 'selected') {
+                D.selected = true; 
+
+            } else {
+                D.setAttribute(BAttr, BAttrs[BAttr]);
+            }
         }
-        if (!exists(BAttrs[BAttr])) CAttrs[BAttr] = true;
     }
 
     for (CAttr in CAttrs) {
-        if (CAttr === 'checked') {
+
+        if (CAttr === 'value') {
+            D.value = '';
+
+        } else if (CAttr === 'checked') {
             D.checked = false;
+
+        } else if (CAttr === 'selected') {
+            D.selected = false;
             
         } else {
-            D.removeAttribute(CAttr);
+            D.removeAttribute(CAttr); 
         }
     }
+
 
     // child comparison: keyed, hash-based strategy
 
