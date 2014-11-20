@@ -52,12 +52,12 @@ function Kilroy (opts, conf) {
     }
 
     k.postUpdate = []; 
-    k.init && k.init(opts);
+    if (k.init) k.init(opts);
 
     k.vDom = prepVDom(k.view(k));
     k.dom  = k.toHtml(k.vDom);
 
-    k.bindEvents(true);
+    bindEvents(k);
 
     if (window.requestAnimationFrame && !k.noAnimate) animate(k);
 
@@ -65,35 +65,35 @@ function Kilroy (opts, conf) {
 }
 
 
-Kilroy.prototype.bindEvents = function (mode) {
+function bindEvents (k) {
 
-    var k = this,
-        eventName,
-        events,
-        method = (mode) ? _on : _off;
+    var eventName,
+        events;
 
     each(k.events, function (events, eventName) {
 
-        method(k.dom, eventName, function (evt) {
+        _on(k.dom, eventName, function (evt) { 
 
-            evt = evt || window.event;
+            evt = evt || window.evt;
+
+            if (!evt.preventDefault) evt.preventDefault = function () { evt.returnValue = false; };
 
             var sel, cb, target = evt.target || evt.srcElement;
 
             for (sel in events) {
 
-                if ((sel[0] === '#' && target.getAttribute('id') === sel.slice(1)) || // id
-                    (sel[0] === '.' && (target.className.split(/ +/).indexOf(sel.slice(1)) > -1)) || // class
+                if ((sel.charAt(0) === '#' && target.getAttribute('id') === sel.slice(1)) || // id
+                    (sel.charAt(0) === '.' && (target.className.split(/ +/).indexOf(sel.slice(1)) > -1)) || // class
                     (sel === target.tagName.toLowerCase())) { // tagname 
 
                         cb = events[sel];
                         if (typeof cb === 'string') cb = k[cb];
-                        cb.call(k, evt, target);
+                        cb.call(k, { evt: evt, el: target });
                 }
             }
         }); 
     });
-};
+}
 
 
 function animate (k) {
@@ -131,7 +131,7 @@ Kilroy.prototype.render = function () {
     var k = this,
         vDomNew = prepVDom(k.view(k)),
         i, f;
-
+   
     k.update(k.dom, k.vDom, vDomNew);
 
     k.vDom = vDomNew;
@@ -140,7 +140,7 @@ Kilroy.prototype.render = function () {
 
     for (i = 0; i < k.postUpdate.length; i++) {
         f = k.postUpdate[i];
-        f[0].apply(k, f[1]);
+        f[0].apply(k, f[1] || []);
     }
 
     k.postUpdate = [];    
@@ -161,11 +161,15 @@ function prepVDom (v) {
 
     // extract id and class from tag
 
-    var tag = v[0].split(/\s+/); 
+    var tag = v[0].split(/\s+/);
 
-    if (tag.length > 1 || tag[0][0] === '#' || tag[0][0] === '.') {
+    if (tag.length > 1 || tag[0].charAt(0) === '#' || tag[0].charAt(0) === '.') {
 
-        var attrs = {}, a, attr, rest, el = 'div';
+        var attrs = {}, 
+            a, 
+            attr, 
+            rest, 
+            el = 'div';
 
         if (_toString.call(v[1]) === '[object Object]') {
             attrs = v[1] || {}; 
@@ -179,10 +183,10 @@ function prepVDom (v) {
 
             attr = tag[a];
 
-            if (attr[0] === '#') {
+            if (attr.charAt(0) === '#') { 
                 attrs.id = attr.slice(1);
 
-            } else if (attr[0] === '.') {
+            } else if (attr.charAt(0) === '.') { 
                 attrs['class'] = (!attrs['class']) ? attr.slice(1) : attrs['class'] + ' ' + attr.slice(1);
 
             } else {
@@ -428,7 +432,10 @@ function exists (n) {
 }
 
 
-root.Kilroy = KilroyDef;
+root.Kilroy = {
+    def:    KilroyDef,
+    proto:  Kilroy.prototype
+};
 
 
 }).call(this);
