@@ -72,9 +72,9 @@ function bindEvents (k) {
 
     each(k.events, function (events, eventName) {
 
-        _on(k.dom, eventName, function (evt) { 
+        _on(k.dom, eventName, function (evt) {
 
-            evt = evt || window.evt;
+            evt = evt || window.event;
 
             if (!evt.preventDefault) evt.preventDefault = function () { evt.returnValue = false; };
 
@@ -83,7 +83,7 @@ function bindEvents (k) {
             for (sel in events) {
 
                 if ((sel.charAt(0) === '#' && target.getAttribute('id') === sel.slice(1)) || // id
-                    (sel.charAt(0) === '.' && (target.className.split(/ +/).indexOf(sel.slice(1)) > -1)) || // class
+                    (sel.charAt(0) === '.' && contains(target.className.split(/ +/), sel.slice(1))) || // class
                     (sel === target.tagName.toLowerCase())) { // tagname 
 
                         cb = events[sel];
@@ -317,7 +317,7 @@ Kilroy.prototype.update = function (D, A, B) {
 
         } else if (!exists(AAttrs[BAttr]) || AAttrs[BAttr] !== BAttrs[BAttr]) {
 
-            if (BAttr === 'value') {
+            if (BAttr === 'value' && D !== document.activeElement) {
                 D.value = BAttrs[BAttr];
 
             } else if (BAttr === 'checked') { 
@@ -326,8 +326,11 @@ Kilroy.prototype.update = function (D, A, B) {
             } else if (BAttr === 'selected') {
                 D.selected = true; 
 
-            } else {
+            } else if (BAttr.charAt(0) !== '_') {
                 D.setAttribute(BAttr, BAttrs[BAttr]);
+
+            } else if (BAttr = '_focus') {
+                D.focus();
             }
         }
     }
@@ -343,11 +346,13 @@ Kilroy.prototype.update = function (D, A, B) {
         } else if (CAttr === 'selected') {
             D.selected = false;
             
-        } else {
+        } else if (CAttr.charAt(0) !== '_') {
             D.removeAttribute(CAttr); 
+            
+        } else if (CAttr = '_focus') {
+            D.blur();
         }
     }
-
 
     // child comparison: keyed, hash-based strategy
 
@@ -422,6 +427,7 @@ function insertBeforeIndex (parent, i, child) {
     }
 }
 
+
 function isTag (v) {
     return v instanceof Array && typeof v[0] === 'string';
 }
@@ -431,6 +437,11 @@ function exists (n) {
     return !!(n === 0 || n);
 }
 
+function contains (arr, v) {
+    for (var i = 0; i < arr.length; i++) {
+        if (arr[i] === v) return true;
+    }
+}
 
 root.Kilroy = {
     def:    KilroyDef,
