@@ -20,7 +20,7 @@ try { // ie < 9 fix
 }
 
 
-if (document.body.addEventListener) {
+if (window.addEventListener) {
     _on  = function (el, event, cb) { el.addEventListener(event, cb, false); };
     _off = function (el, event, cb) { el.removeEventListener(event, cb, false); };
 
