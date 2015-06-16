@@ -1,0 +1,4 @@
+{
+	"dist": ["head.js", "utils.js", "vdom.js", "events.js", "component.js", "footer.js"],
+	"test": ["head.js", "utils.js", "vdom.js", "events.js", "component.js", "test.js", "footer.js"],
+}
