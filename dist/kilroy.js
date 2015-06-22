@@ -1,3 +1,92 @@
+(function () {
+
+// ---------- Utils ----------   
+
+var root        = this;
+var toString    = Object.prototype.toString;
+var slice       = Array.prototype.slice;
+var _on, _off;
+
+if (document.body.addEventListener) {
+    _on  = function (el, event, cb) { el.addEventListener(event, cb, false); };
+    _off = function (el, event, cb) { el.removeEventListener(event, cb, false); };
+
+} else {
+    _on  = function (el, event, cb) { el.attachEvent('on' + event, cb); };
+    _off = function (el, event, cb) { el.detachEvent('on' + event, cb); };
+}
+
+try {
+    slice.call(document.body.childNodes);
+
+} catch (e) {
+    slice = function () {
+        var res = [], i;
+        for (i = 0; i < this.length; i++) { res.push(this[i]); }
+        return res;    
+    };
+}
+
+// { *: * }, (* -> *) -> _
+
+function each (obj, f) {
+    for (var k in obj) f(obj[k], k);
+}
+
+// vDomNode -> Bool
+// test whether the node starts with an array within an array
+
+function isNested (v) {
+    return v instanceof Array && v[0] instanceof Array;
+}
+
+// vDomNode -> Bool
+// test whether the node has a valid 'tag' structure
+
+function isTag (v) {
+    return v instanceof Array && typeof v[0] === 'string';
+}
+
+// vDomNode -> Bool
+// test whether the node is i.e. is a number or longer than zero
+
+function exists (n) {
+    if (n instanceof Array || typeof n === 'string') return n.length > 0;
+    return !!(n === 0 || n);
+}
+
+// [*...], * -> Bool
+// test whether the value is in the array, by ===
+
+function contains (arr, v) {
+    for (var i = 0; i < arr.length; i++) { if (arr[i] === v) return true; }
+}
+
+// DomNode, Int, DomNode -> _
+// inserts the child in the parent at index
+
+function insertBeforeIndex (parent, i, child) { 
+
+    var next = parent.childNodes[i];
+
+    if (next) {
+        parent.insertBefore(child, next);
+    } else {
+        parent.appendChild(child);
+    }
+}
+
+// vDomTag, vDomTag -> Bool 
+// are the two tags of the same type, and if they have an id, is it the same?
+
+function hasSameTagAndId (a, b) { 
+
+    var hasId = toString.call(a[1]) === '[object Object]' && toString.call(b[1]) === '[object Object]' && a[1].id && b[1].id;
+
+    return a[0] === b[0] && (!hasId || (hasId && a[1].id === b[1].id));
+}
+
+// ---------- Virtual Dom ----------
 
 // Lists html5 void elements which can not be closed
 
@@ -134,7 +223,7 @@ function htmlStringToDom (str) {
     var el = document.createElement('div');
     el.innerHTML = str;
     return el.firstChild;
-};
+}
 
 // vDomNode -> DomNode
 // vDoms must be prepared with prepVDomTag
@@ -177,7 +266,7 @@ function updateDom (D, A, B) {
     ((BChildren[0] && BChildren[0][1] && BChildren[0][1]._key) ? 
         updateChildrenKeyed : 
         updateChildrenPairwise)(D, DChildren, AChildren, BChildren);
-};
+}
 
 
 // DomNode, { attr: val... }, { attr: val... } -> _
@@ -206,7 +295,7 @@ function updateAttributes (D, AAttrs, BAttrs) {
             } else if (AAttr.charAt(0) !== '_') {
                 D.removeAttribute(AAttr); 
                 
-            } else if (AAttr = '_focus') {
+            } else if (AAttr === '_focus') {
                 D.blur();
             }
         }
@@ -226,7 +315,7 @@ function updateAttributes (D, AAttrs, BAttrs) {
         } else if (BAttr.charAt(0) !== '_') {
             D.setAttribute(BAttr, BAttrs[BAttr]);
 
-        } else if (BAttr = '_focus') {
+        } else if (BAttr === '_focus') {
             D.focus();
         }
     }
@@ -238,26 +327,18 @@ function updateAttributes (D, AAttrs, BAttrs) {
 
 function updateChildrenPairwise (D, DChildren, AChildren, BChildren) {
 
-    var AKeys = {}, 
-        AKey, 
-        BKeys = {}, 
-        BKey,
-        d,
-        a,
-        b,
-        i,
-        existsA,
-        existsB,
-        existsD;
+    var d, a, b,
+        existsD, existsA, existsB,
+        i;
 
     for (i = 0; i < Math.max(AChildren.length, BChildren.length); i++) {
 
         d = DChildren[i];
         a = AChildren[i];
         b = BChildren[i];
+        existsD = typeof d !== 'undefined';
         existsA = exists(a);
         existsB = exists(b);
-        existsD = typeof d !== 'undefined';
         
         if (!existsD && !existsA && existsB) { // no d/a, but b
             D.appendChild(vDomToDom(b)); 
@@ -293,14 +374,7 @@ function updateChildrenPairwise (D, DChildren, AChildren, BChildren) {
 
 function updateChildrenKeyed (D, DChildren, AChildren, BChildren) {
 
-    var AKeys = {}, 
-        AKey, 
-        BKeys = {}, 
-        BKey,
-        d,
-        a,
-        b,
-        i;
+    var d, a, b, i, AKeys = {}, AKey, BKeys = {}, BKey;
 
     for (i = 0; i < Math.max(AChildren.length, BChildren.length); i++) {
 
@@ -321,3 +395,148 @@ function updateChildrenKeyed (D, DChildren, AChildren, BChildren) {
         if (AKeys[b[1]._key] === undefined) insertBeforeIndex(D, i, vDomToDom(b));
     }
 }
+
+// vDom, Kilroy -> _
+
+function render (v, k, cback) {
+
+    if (!v.node) {
+        v.virtual = prepVDomTag(v.view.call(k));
+        v.node    = vDomToDom(v.virtual);
+
+    } else {
+        var virtualNew = prepVDomTag(v.view.call(k));
+        updateDom(v.node, v.virtual, virtualNew);
+        v.virtual = virtualNew;
+    }
+
+    if (cback) { cback.call(k); }
+}
+
+// vDom, Kilroy -> _
+
+function animate (v, k) {
+
+    v.animating = true;
+
+    function frame () {
+
+        if (!v.rendering && v.isDirty) {
+            v.rendering = true;
+            render(v, k, k._cback);
+            delete v.rendering;
+            delete v.isDirty;
+            delete k._cback;
+        } 
+        window.requestAnimationFrame(frame);
+    }
+
+    frame();
+}
+
+// vDom, Kilroy -> _
+
+function dirty (v, k, cback) {
+
+    if (v.animating) {
+        v.isDirty = true;
+        k._cback  = cback;
+
+    } else {
+        render(v, k, cback);
+    }
+}
+
+// * -> vDomNode, { *: * } -> VDom
+// constructs a vDom
+
+function vDom (view, k) {
+
+    var v = {
+        view:       view,
+        virtual:    null,
+        node:       null,
+        animating:  false,
+        rendering:  false,
+        isDirty:    true
+    };
+
+    render(v, k);
+
+    if (window.requestAnimationFrame && !k.noAnimate) { animate(v, k); }
+
+    return v;
+}
+
+// ---------- Event binding ----------
+
+// VDom, Kilroy -> _
+// Binds a map of events in Kilroy object on the dom
+// each event receives an action object: { el: targetElement, event: currentEvent } 
+// { event: { selector: ((action) -> _) } }
+
+function bindDomEvents (v, k) {
+
+    var eventName, events;
+
+    each(k.events, function (events, eventName) {
+
+        _on(v.node, eventName, function (evt) {
+
+            evt = evt || window.event;
+
+            if (!evt.preventDefault) evt.preventDefault = function () { evt.returnValue = false; };
+
+            var sel, cb, target = evt.target || evt.srcElement;
+
+            for (sel in events) {
+
+                if ((sel.charAt(0) === '#' && target.getAttribute('id') === sel.slice(1)) || // id
+                    (sel.charAt(0) === '.' && contains(target.className.split(/ +/), sel.slice(1))) || // class
+                    (sel === target.tagName.toLowerCase())) { // tagname 
+
+                        cb = events[sel];
+                        if (typeof cb === 'string') cb = k[cb];
+                        cb.call(k, { evt: evt, el: target });
+                }
+            }
+        }); 
+    });
+}
+
+// ---------- Constructor ----------
+
+// { init: * -> _, view: _ -> vDomNode, events: { eventName: { selector: action -> _ }}}
+// defines a Kilroy component
+
+function Kilroy (base) {
+ 
+    if (!base.view) { throw new Error("A 'view' property is required"); }
+
+    // * -> Kilroy
+    // creates an instance of a Kilroy component
+
+    return function (data) {
+
+        var k = {};
+
+        for (var p in base) {
+            if (base.hasOwnProperty(p)) { k[p] = base[p]; }
+        }
+
+        if (k.init) { k.init(data); }
+
+        var v = vDom(k.view, k);
+
+        k.node = v.node;
+        k.d    = function (cback) { dirty(v, k, cback); };
+
+        if (k.events) { bindDomEvents(v, k); }
+
+        return k;
+    };
+}
+
+root.Kilroy = Kilroy;
+
+}).call(this);
