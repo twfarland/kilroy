@@ -169,7 +169,7 @@ function prepChild (ctx, child) {
 
     } else {
         if (isTag(child))  { prepVDomTag(child); } 
-        ctx.push(child);
+        if (exists(child)) { ctx.push(child); }
     }
 }
 
@@ -463,9 +463,7 @@ function vDom (view, k) {
         isDirty:    true
     };
 
-    render(v, k);
-
-    if (window.requestAnimationFrame && !k.noAnimate) { animate(v, k); }
+    if (window.requestAnimationFrame && !k.noAnimate) { animate(v, k); } else { render(v, k); }
 
     return v;
 }

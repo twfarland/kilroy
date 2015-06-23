@@ -263,6 +263,58 @@ QUnit.test('Kilroy, recursive view', function (assert) {
 });
 
 
+QUnit.test('Misc 1', function (assert) { 
+
+    assert.expect(2);
+
+    var Misc = K({
+
+        init: function () {
+            this.active    = 3;
+            this.completed = 0;
+        },
+
+        toggle: function (cback) {
+            var a = this.active, c = this.completed;
+            this.active = c;
+            this.completed = a;
+            this.d(cback);
+        },
+
+        view: function () {
+
+            var k = this;
+
+            return ['footer .footer',
+
+                k.active > 0 && ['span .todo-count', 
+                    ['strong', k.active], ' item' + ((k.active === 1) ? '' : 's') + ' left'],
+
+                ['ul .filters', 
+                    ['li', ['a', { 'class': 'selected', href: '#all' }, 'all']],
+                    ['li', ['a', { href: '#completed' }, 'completed']],
+                    ['li', ['a', { href: '#active' }, 'active']]],
+
+                k.completed > 0 && ['button .clear-completed', 'Clear completed (' + k.completed + ')']]; 
+        }
+    });
+
+    var misc = Misc();
+
+    document.body.appendChild(misc.node);
+
+    assert.ok(document.querySelector('.todo-count') !== null && document.querySelector('.clear-completed') === null);
+
+    var done = assert.async();
+
+    misc.toggle(function () {
+        assert.ok(document.querySelector('.todo-count') === null && document.querySelector('.clear-completed') !== null);
+        done();
+    });
+
+    
+
+});
 
 
 }).call(this, Kilroy, KilroyUnits);
