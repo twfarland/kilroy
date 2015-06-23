@@ -1,5 +1,7 @@
 (function () {
 
+'use strict';
+
 // ---------- Utils ----------   
 
 var root        = this;
