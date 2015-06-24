@@ -248,19 +248,21 @@ function updateDom (D, A, B) {
         BChildren,
         AAttrs = {},
         BAttrs = {};
+        
+    if (toString.call(B[1]) === '[object Object]') {
+        BAttrs    = B[1];
+        BChildren = B.slice(2);
+    } else {
+        BChildren = B.slice(1);
+    }
+
+    if (BAttrs._noUpdate) { return; }
 
     if (toString.call(A[1]) === '[object Object]') {
         AAttrs    = A[1];
         AChildren = A.slice(2);
     } else {
         AChildren = A.slice(1);
-    }
-
-    if (toString.call(B[1]) === '[object Object]') {
-        BAttrs    = B[1];
-        BChildren = B.slice(2);
-    } else {
-        BChildren = B.slice(1);
     }
 
     updateAttributes(D, AAttrs, BAttrs);
