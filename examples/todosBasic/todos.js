@@ -12,7 +12,7 @@ var Todos = Kilroy({
             ['h3', 'Todos'],
             ['input .new-todo', { placeholder: 'New todo ...' }],
             ['ul', todos.map(function (todo, i) {
-                return ['li',
+                return ['li', { _key: todo.text + i },
                     ['span', todo.text], 
                     ['a .del', { href: '#' + i }, ' [&times;]']]; })]];
     },

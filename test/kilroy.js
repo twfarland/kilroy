@@ -395,10 +395,20 @@ function updateChildrenKeyed (D, DChildren, AChildren, BChildren) {
     } 
 
     for (i = 0; i < BChildren.length; i++) {
+
         b = BChildren[i];
-        if (AKeys[b[1]._key] === undefined) insertBeforeIndex(D, i, vDomToDom(b));
+        d = DChildren[i];
+        a = AKeys[b[1]._key];
+
+        if (a === undefined) {
+            insertBeforeIndex(D, i, vDomToDom(b));
+
+        } else if (d) {
+            insertBeforeIndex(D, i, a);
+        }
     }
 }
+
 
 // vDom, Kilroy -> _
 
@@ -502,6 +512,8 @@ function bindDomEvents (v, k) {
                         cb.call(k, { evt: evt, el: target });
                 }
             }
+
+            evt.stopPropagation();
         }); 
     });
 }

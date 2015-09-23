@@ -80,12 +80,14 @@ When the component is initialised with this view, it is mapped to an html string
 Id and class css selector shorthand is also supported on the tag name, and if the tag name is omitted, a div is implied e.g:
 
 ```javascript
-['div #main .container .active', 'text']
+['#main .container .active', 'text']
 
 	// expands to:
 
 ['div', { id: 'main', class: 'container active' }, 'text']
 ```
+
+Gotcha: It does not currently support html tables, because unfortunately, they have a different dom manipulation api. This is to make things faster. You can style other html elements as tables if you need to.
 
 ### Updating the view
 
@@ -268,26 +270,28 @@ A virtual dom returned by the `view` function must be javascript objects adherin
 
 Consists of one function, `Kilroy`, which defines a component **constructor.**
 
-	var Component = Kilroy({
+```javascript
+var Component = Kilroy({
 
-		// required
+	// required
 
-		view: function () {},
+	view: function () {},
 
-		// optional
+	// optional
 
-		init: function (any...) {},
+	init: function (any...) {},
 
-		events: {
-			eventName: {
-				selector: function (context) { }
-			}
-		},
+	events: {
+		eventName: {
+			selector: function (context) { }
+		}
+	},
 
-		_noAnimate: bool,
+	_noAnimate: bool,
 
-		// other, arbitrary properties and methods can be defined
-	});
+	// other, arbitrary properties and methods can be defined
+});
+```
 
 The event callbacks receive an action context which has:
 

@@ -111,6 +111,54 @@ QUnit.test('vDomToDom / updateDom', function (assert) {
             ['div', { _key: 3 }, 3]]
     );
     vDomTest(assert, 
+        ['div', 
+            ['div', { _key: 1 }, 1],
+            ['div', { _key: 2 }, 2],
+            ['div', { _key: 3 }, 3]], 
+        ['div', 
+            ['div', { _key: 3 }, 3],
+            ['div', { _key: 2 }, 2],
+            ['div', { _key: 1 }, 1]]
+    );
+    vDomTest(assert, 
+        ['div', 
+            ['div', { _key: 1 }, 1],
+            ['div', { _key: 2 }, 2],
+            ['div', { _key: 3 }, 3]], 
+        ['div', 
+            ['div', { _key: 3 }, 3],
+            ['div', { _key: 2 }, 2]]
+    );
+    vDomTest(assert, 
+        ['div', 
+            ['div', { _key: 2 }, 2],
+            ['div', { _key: 3 }, 3]], 
+        ['div', 
+            ['div', { _key: 3 }, 3],
+            ['div', { _key: 2 }, 2],
+            ['div', { _key: 1 }, 1]]
+    );
+    vDomTest(assert, 
+        ['div', 
+            ['div', { _key: 5 }, 5],
+            ['div', { _key: 4 }, 4]], 
+        ['div', 
+            ['div', { _key: 3 }, 3],
+            ['div', { _key: 2 }, 2],
+            ['div', { _key: 1 }, 1]]
+    );
+    vDomTest(assert, 
+        ['div', 
+            ['div', { _key: 5 }, 5],
+            ['div', { _key: 4 }, 4],
+            ['div', { _key: 1 }, 1]], 
+        ['div', 
+            ['div', { _key: 4 }, 4],
+            ['div', { _key: 3 }, 3],
+            ['div', { _key: 5 }, 5],
+            ['div', { _key: 1 }, 1]]
+    );
+    vDomTest(assert, 
         ['input', { type: 'checkbox', checked: true }], 
         ['input', { type: 'checkbox', checked: false, _focus: true }],
         function (v, a, b) { return !v.checked; }
